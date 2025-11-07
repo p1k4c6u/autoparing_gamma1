@@ -1,0 +1,115 @@
+
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Autopäring – Auto-soovitaja (MVP)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>.ring-focus:focus{ outline:none; box-shadow:0 0 0 3px rgba(59,130,246,.35) }</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-xl font-semibold">Autopäring – Auto‑soovitaja (MVP)</h1>
+      <div class="flex gap-2">
+        <button id="saveBtn" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Salvesta</button>
+        <button id="loadBtn" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Laadi</button>
+        <button id="resetBtn" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Nulli</button>
+        <button id="runSelfTests" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Enesetest</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <section class="bg-white shadow-sm border border-gray-200 rounded-xl p-4 sm:p-6 mb-4">
+      <div id="wizard"></div>
+    </section>
+
+    <!-- Andmete import (CSV / Google Sheet) -->
+    <section id="importSection" class="bg-white shadow-sm border border-gray-200 rounded-xl p-4 sm:p-6 mb-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold">Andmete import (CSV / Google Sheet)</h2>
+          <p class="text-sm text-gray-600">Lae sisse mudelitabel. Toetab Google Sheeti <em>Publish to CSV</em> linki või kohalikku CSV faili. Tulbad: <code>id,make,model,year,price,body,seats,isofix,drivetrain,transmission,fuel,wltp,real,co2,massKg,towing,trunk,safety,reliability,features,maintenanceY,image,variant,trim,engineCode,batteryNetKWh,chargeACkW,chargeDCkW,wltpCity,wltpCombined,kw,nm</code></p>
+        </div>
+        <div id="importStats" class="text-sm text-gray-500"></div>
+      </div>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+        <div class="border rounded-lg p-3">
+          <div class="text-sm font-medium mb-2">Laadi URL-ist</div>
+          <div class="flex gap-2 items-center">
+            <input id="csvUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" class="ring-focus w-full px-3 py-2 border rounded-lg"/>
+            <button id="loadUrlBtn" class="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">Laadi</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Näide: Google Sheet → File → Publish to the web → CSV link. Kui avad faili otse (file://), ei pruugi URL-i laadimine töötada – kasuta lihtsat kohalikku serverit (nt VS Code Live Server).</p>
+        </div>
+        <div class="border rounded-lg p-3">
+          <div class="text-sm font-medium mb-2">Laadi failist</div>
+          <div class="flex gap-2 items-center">
+            <input id="csvFile" type="file" accept=".csv" class="w-full"/>
+            <button id="loadFileBtn" class="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">Laadi</button>
+          </div>
+          <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-600">
+            <input type="checkbox" id="replaceMode" class="w-4 h-4"/> Asenda olemasolev (vaikimisi liidetakse juurde)
+          </label>
+          <div class="text-xs text-gray-500 mt-2">Võid alustada ka näidisfailist: <code>data/models.csv</code> (kaasas ZIPis).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integratsioonid -->
+    <section id="integrationsSection" class="bg-white shadow-sm border border-gray-200 rounded-xl p-4 sm:p-6 mb-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold">Integratsioonid (Sheet / Partner API / Pildi CDN)</h2>
+          <p class="text-sm text-gray-600">Seadista püsivad ühendused. Seaded salvestatakse brauseri LocalStorage’i.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="resetConfig" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Nulli seaded</button>
+        </div>
+      </div>
+      <div class="mt-3 grid gap-3 sm:grid-cols-3">
+        <div class="border rounded-lg p-3">
+          <div class="text-sm font-medium mb-2">Google Sheet (master)</div>
+          <input id="cfgSheetUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" class="ring-focus w-full px-3 py-2 border rounded-lg"/>
+          <div class="mt-2 flex gap-2">
+            <button id="cfgSaveSheet" class="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">Salvesta & Laadi</button>
+            <button id="cfgClearSheet" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Tühjenda</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Kui määratud, laaditakse lehe avamisel siit CSV.</p>
+        </div>
+        <div class="border rounded-lg p-3">
+          <div class="text-sm font-medium mb-2">Partner API</div>
+          <input id="cfgApiBase" type="url" placeholder="https://api.partner.ee" class="ring-focus w-full px-3 py-2 border rounded-lg mb-2"/>
+          <input id="cfgApiToken" type="text" placeholder="Bearer token (valikuline)" class="ring-focus w-full px-3 py-2 border rounded-lg mb-2"/>
+          <input id="cfgApiBrands" type="text" placeholder="Brändid CSV (nt BMW,Audi,Volvo)" class="ring-focus w-full px-3 py-2 border rounded-lg mb-2"/>
+          <div class="flex gap-2">
+            <button id="cfgApiFetch" class="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">Laadi API-st</button>
+            <button id="cfgApiDemo" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Laadi DEMO</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Ootus: GET <code>/cars?brands=BMW,Audi</code> → JSON massiiv autode kirjetest.</p>
+        </div>
+        <div class="border rounded-lg p-3">
+          <div class="text-sm font-medium mb-2">Pildi CDN mall</div>
+          <input id="cfgImgTpl" type="text" placeholder="https://cdn.example.com/{make}/{modelSlug}/{year}.jpg" class="ring-focus w-full px-3 py-2 border rounded-lg"/>
+          <div class="mt-2 flex gap-2">
+            <button id="cfgSaveImg" class="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">Salvesta</button>
+            <button id="cfgClearImg" class="px-3 py-2 rounded-lg border hover:bg-gray-50 text-sm">Tühjenda</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Toetatud muutujad: <code>{make}</code>, <code>{model}</code>, <code>{modelSlug}</code>, <code>{year}</code>, <code>{fuel}</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" class="space-y-4"></section>
+
+    <footer class="text-xs text-gray-500 mt-8">
+      MVP demonstratsioon. Andmed on näidisandmed (mock). TCO arvutused on indikatiivsed (energia + hooldus + aastamaks + liikluskindlustus [+ kasko] [+ reg.tasu amort]).
+      Maksureeglid võivad muutuda; kinnita tulemused alati EMTA/Transpordiameti ametlikes kalkulaatorites.
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
